@@ -1,0 +1,24 @@
+{
+  "name": "gia-cli",
+  "version": "1.0.0",
+  "type": "module",
+  "bin": {
+    "gia": "./bin/index.js"
+  },
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "packageManager": "pnpm@10.25.0",
+  "dependencies": {
+    "chalk": "^5.6.2",
+    "commander": "^14.0.3",
+    "conf": "^15.1.0",
+    "inquirer": "^13.3.0",
+    "octokit": "^5.0.5"
+  }
+}
