@@ -1,30 +1,12 @@
 import {
-  createOctokit
-} from "./shared/octokit.js"
-import {
   assertRepositoryParams,
-  normalizePrQuery,
+  filterOutPullRequests,
   normalizeIssueQuery,
   withGithubApiVersion,
-} from "../utils/github.js"
-
-export async function listRepositoryIssues({ owner, repo, token, query } = {}) {
-  assertRepositoryParams(owner, repo)
-
-  const octokit = createOctokit(token)
-  const normalizedQuery = normalizeIssueQuery(query)
-
-  const response = await octokit.request(
-    "GET /repos/{owner}/{repo}/issues",
-    withGithubApiVersion({
-      owner,
-      repo,
-      ...normalizedQuery,
-    }),
-  )
-
-  return filterOutPullRequests(response.data)
-}
+} from '../utils/github.js'
+import {
+  createOctokit,
+} from './shared/octokit.js'
 
 export async function listAllOpenRepositoryIssues({
   owner,
@@ -37,66 +19,44 @@ export async function listAllOpenRepositoryIssues({
   const octokit = createOctokit(token)
   const normalizedQuery = normalizeIssueQuery({
     ...query,
-    state: "open",
+    state: 'open',
     perPage: query?.perPage || 100,
   })
 
   const issues = []
 
   for await (const { data } of octokit.paginate.iterator(
-    "GET /repos/{owner}/{repo}/issues",
+    'GET /repos/{owner}/{repo}/issues',
     withGithubApiVersion({
       owner,
       repo,
       ...normalizedQuery,
     }),
   )) {
-    issues.push(...data)
+    issues.push(...filterOutPullRequests(data))
   }
 
   return issues
 }
 
-export async function listRepositoryPullRequests({ owner, repo, token, query } = {}) {
+export async function listAllLabelsForRepository({ owner, repo, token, query } = {}) {
   assertRepositoryParams(owner, repo)
 
   const octokit = createOctokit(token)
-  const normalizedQuery = normalizePrQuery(query)
-
-  const response = await octokit.request(
-    "GET /repos/{owner}/{repo}/pulls",
-    withGithubApiVersion({
-      owner,
-      repo,
-      ...normalizedQuery,
-    }),
-  )
-
-  return response.data
-}
-
-export async function listAllOpenRepositoryPullRequests({ owner, repo, token, query } = {}) {
-  assertRepositoryParams(owner, repo)
-
-  const octokit = createOctokit(token)
-  const normalizedQuery = normalizePrQuery({
-    ...query,
-    state: "open",
-    perPage: query?.perPage || 100,
-  })
-
-  const prs = []
+  const labels = []
+  const perPage = query?.perPage || query?.per_page || 100
 
   for await (const { data } of octokit.paginate.iterator(
-    "GET /repos/{owner}/{repo}/pulls",
+    'GET /repos/{owner}/{repo}/labels',
     withGithubApiVersion({
       owner,
       repo,
-      ...normalizedQuery,
+      ...query,
+      per_page: perPage,
     }),
   )) {
-    prs.push(...data)
+    labels.push(...data)
   }
 
-  return prs
+  return labels.map(item => item.name)
 }

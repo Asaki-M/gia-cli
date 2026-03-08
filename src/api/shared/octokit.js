@@ -1,4 +1,4 @@
-import { Octokit } from "octokit"
+import { Octokit } from 'octokit'
 
 export function createOctokit(token) {
   if (!token) {

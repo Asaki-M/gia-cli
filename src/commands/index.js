@@ -1,2 +1,2 @@
-export * from "./analyze.js"
-export * from "./config.js"
+export * from './analyze.js'
+export * from './config.js'

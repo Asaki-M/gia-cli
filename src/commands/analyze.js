@@ -1,101 +1,96 @@
-import inquirer from "inquirer"
-import { listAllOpenRepositoryIssues, listAllOpenRepositoryPullRequests } from "../api/github.js"
+import fs from 'node:fs'
+import inquirer from 'inquirer'
+import { categorizedIssuesByGemini } from '../api/gemini.js'
+import { listAllLabelsForRepository, listAllOpenRepositoryIssues } from '../api/github.js'
+import {
+  categorizeIssueByLabels,
+  chunkItems,
+  mergeCategorizedIssuesResults,
+} from '../utils/analyze.js'
+import { GEMINI_API_KEY, getConfig, GITHUB_TOKEN_KEY } from '../utils/config.js'
+import { generateCategoryMDContent } from '../utils/markdown.js'
 
 export async function analyzeAction() {
-  const reqType = await inquirer.prompt([
-    {
-      type: "rawlist",
-      name: "type",
-      message: "What do you want to analyze?",
-      choices: ["issue", "pr"],
-      default: 'issue'
-    },
-  ])
+  const config = getConfig()
+  const token = config.get(GITHUB_TOKEN_KEY)
+  const geminiKey = config.get(GEMINI_API_KEY)
+
+  if (!token || !geminiKey) {
+    const missingKeys = []
+
+    if (!token) {
+      missingKeys.push('GitHub Personal Access Token')
+    }
+
+    if (!geminiKey) {
+      missingKeys.push('Gemini API Key')
+    }
+
+    console.log(`Please run \`gia config\` to save the required config: ${missingKeys.join(', ')}`)
+    return
+  }
 
   const owner = await inquirer.prompt([
     {
-      type: "input",
-      name: "owner",
-      message: "Enter the owner of the repository:",
-      validate: (input) => {
-        if (input) {
-          return true
-        }
-        return "Please enter the owner of the repository."
-      },
+      type: 'input',
+      name: 'owner',
+      message: 'Enter the owner of the repository:',
+      validate: input => !!input || 'Please enter the owner of the repository.',
     },
   ])
 
   const repo = await inquirer.prompt([
     {
-      type: "input",
-      name: "repo",
-      message: "Enter the repository name:",
-      validate: (input) => {
-        if (input) {
-          return true
-        }
-        return "Please enter the repository name."
-      },
+      type: 'input',
+      name: 'repo',
+      message: 'Enter the repository name:',
+      validate: input => !!input || 'Please enter the repository name.',
     },
   ])
 
   const finalParams = {
-    type: reqType.type,
     owner: owner.owner,
     repo: repo.repo,
   }
 
-  if (finalParams.type === "issue") {
-    console.log("正在获取 Issues，请稍候...\n")
-    try {
-      const issues = await listAllOpenRepositoryIssues({
-        owner: finalParams.owner,
-        repo: finalParams.repo,
-      })
+  console.log('Fetching issues...\n')
 
-      if (issues.length === 0) {
-        console.log("该仓库暂无开放的 Issue。")
-      } else {
-        console.log(`===== Issues（共 ${issues.length} 条）=====`)
-        issues.forEach((issue, index) => {
-          console.log(`\n[${index + 1}] #${issue.number} ${issue.title}`)
-          console.log(`    状态：${issue.state}`)
-          console.log(`    创建者：${issue.user?.login}`)
-          console.log(`    创建时间：${issue.created_at}`)
-          console.log(`    链接：${issue.html_url}`)
-        })
-        console.log("\n====================\n")
-      }
-    } catch (error) {
-      console.error("获取 Issues 失败：", error.message)
+  try {
+    const labels = await listAllLabelsForRepository({
+      owner: finalParams.owner,
+      repo: finalParams.repo,
+      token,
+    })
+    const issues = await listAllOpenRepositoryIssues({
+      owner: finalParams.owner,
+      repo: finalParams.repo,
+      token,
+    })
+
+    if (issues.length === 0) {
+      console.log('No open issues found.')
+      return
     }
+
+    const localResult = categorizeIssueByLabels({ labels, issues })
+    const issueBatches = chunkItems(localResult.uncategorizedIssues, 20)
+    const aiResults = []
+
+    for (const [index, issueBatch] of issueBatches.entries()) {
+      console.log(`Classifying issue batch ${index + 1}/${issueBatches.length} with AI...`)
+      aiResults.push(await categorizedIssuesByGemini({
+        labels,
+        issues: issueBatch,
+      }))
+    }
+
+    const finalResult = mergeCategorizedIssuesResults(localResult, ...aiResults)
+
+    const outputPath = `./${finalParams.owner}-${finalParams.repo}-issue-report.md`
+    fs.writeFileSync(outputPath, generateCategoryMDContent(finalResult))
+    console.log(`Issue report generated: ${outputPath}`)
   }
-
-  if (finalParams.type === "pr") {
-    console.log("正在获取 Pull Requests，请稍候...\n")
-    try {
-      const prs = await listAllOpenRepositoryPullRequests({
-        owner: finalParams.owner,
-        repo: finalParams.repo,
-      })
-
-      if (prs.length === 0) {
-        console.log("该仓库暂无开放的 Pull Request。")
-      } else {
-        console.log(`===== Pull Requests（共 ${prs.length} 条）=====`)
-        prs.forEach((pr, index) => {
-          console.log(`\n[${index + 1}] #${pr.number} ${pr.title}`)
-          console.log(`    状态：${pr.state}`)
-          console.log(`    创建者：${pr.user?.login}`)
-          console.log(`    创建时间：${pr.created_at}`)
-          console.log(`    分支：${pr.head?.ref} → ${pr.base?.ref}`)
-          console.log(`    链接：${pr.html_url}`)
-        })
-        console.log("\n====================\n")
-      }
-    } catch (error) {
-      console.error("获取 Pull Requests 失败：", error.message)
-    }
+  catch (error) {
+    console.error('Failed to analyze issues:', error.message)
   }
 }
