@@ -1,6 +1,9 @@
 const JSON_FENCE_PREFIX = '```json'
 const GENERIC_FENCE_PREFIX = '```'
 
+export const GEMINI_MODEL = 'gemini-3.1-pro-preview'
+export const CATEGORIZED_ISSUES_PROMPT_VERSION = 1
+
 export function buildCategorizedIssuesPrompt(labels = [], issues = []) {
   const normalizedIssues = issues.map(issue => ({
     number: issue.number,

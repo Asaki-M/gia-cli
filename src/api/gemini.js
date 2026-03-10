@@ -3,6 +3,7 @@ import { GEMINI_API_KEY, getConfig } from '../utils/config.js'
 import {
   buildCategorizedIssuesPrompt,
   extractJson,
+  GEMINI_MODEL,
   normalizeAiCategorizedIssues,
 } from '../utils/gemini.js'
 
@@ -13,7 +14,7 @@ async function askGemini(contents) {
 
   try {
     const response = await ai.models.generateContent({
-      model: 'gemini-3.1-pro-preview',
+      model: GEMINI_MODEL,
       contents,
     })
     return response

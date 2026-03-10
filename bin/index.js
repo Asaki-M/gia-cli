@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { Command } from 'commander'
-import { analyzeAction, configAction, configGetAction } from '../src/commands/index.js'
+import { analyzeAction, cacheClearAction, configAction, configGetAction } from '../src/commands/index.js'
 
 const program = new Command()
 
@@ -24,5 +24,14 @@ configCommand
   .description('Show saved GitHub token and Gemini API key.')
   .option('-s, --show', 'Show full values instead of masked output.')
   .action(configGetAction)
+
+const cacheCommand = program
+  .command('cache')
+  .description('Manage cached AI issue classifications.')
+
+cacheCommand
+  .command('clear')
+  .description('Clear cached AI issue classifications.')
+  .action(cacheClearAction)
 
 program.parse(process.argv)

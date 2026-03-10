@@ -3,6 +3,10 @@ import inquirer from 'inquirer'
 import { categorizedIssuesByGemini } from '../api/gemini.js'
 import { listAllLabelsForRepository, listAllOpenRepositoryIssues } from '../api/github.js'
 import {
+  getCachedIssueClassifications,
+  saveIssueClassificationsToCache,
+} from '../utils/ai-cache.js'
+import {
   categorizeIssueByLabels,
   chunkItems,
   mergeCategorizedIssuesResults,
@@ -73,18 +77,40 @@ export async function analyzeAction() {
     }
 
     const localResult = categorizeIssueByLabels({ labels, issues })
-    const issueBatches = chunkItems(localResult.uncategorizedIssues, 20)
+    const { cachedResult, missedIssues } = getCachedIssueClassifications({
+      owner: finalParams.owner,
+      repo: finalParams.repo,
+      labels,
+      issues: localResult.uncategorizedIssues,
+    })
+    const cachedCount = localResult.uncategorizedIssues.length - missedIssues.length
+    const issueBatches = chunkItems(missedIssues, 20)
     const aiResults = []
+
+    if (cachedCount > 0) {
+      console.log(`Loaded ${cachedCount} issue classifications from cache.`)
+    }
 
     for (const [index, issueBatch] of issueBatches.entries()) {
       console.log(`Classifying issue batch ${index + 1}/${issueBatches.length} with AI...`)
-      aiResults.push(await categorizedIssuesByGemini({
+      const aiResult = await categorizedIssuesByGemini({
         labels,
         issues: issueBatch,
-      }))
+      })
+
+      aiResults.push(aiResult)
+
+      if (!aiResult.error) {
+        saveIssueClassificationsToCache({
+          owner: finalParams.owner,
+          repo: finalParams.repo,
+          labels,
+          result: aiResult,
+        })
+      }
     }
 
-    const finalResult = mergeCategorizedIssuesResults(localResult, ...aiResults)
+    const finalResult = mergeCategorizedIssuesResults(localResult, cachedResult, ...aiResults)
 
     const outputPath = `./${finalParams.owner}-${finalParams.repo}-issue-report.md`
     fs.writeFileSync(outputPath, generateCategoryMDContent(finalResult))
