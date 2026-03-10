@@ -6,12 +6,40 @@ import {
   GITHUB_TOKEN_KEY,
 } from '../utils/config.js'
 
+function normalizeInputValue(value) {
+  return value?.trim() || ''
+}
+
+function keepCurrentValue(inputValue, currentValue) {
+  return normalizeInputValue(inputValue) || currentValue
+}
+
+function maskSecret(value) {
+  if (!value) {
+    return chalk.gray('Not set')
+  }
+
+  if (value.length <= 8) {
+    return `${value.slice(0, 2)}***${value.slice(-2)}`
+  }
+
+  return `${value.slice(0, 4)}${'*'.repeat(value.length - 8)}${value.slice(-4)}`
+}
+
+function formatSecret(value, showFullValue = false) {
+  if (!value) {
+    return chalk.gray('Not set')
+  }
+
+  return showFullValue ? value : maskSecret(value)
+}
+
 export async function configAction(commandOptions = {}) {
   const config = getConfig()
   const currentGithubToken = config.get(GITHUB_TOKEN_KEY)
   const currentGeminiKey = config.get(GEMINI_API_KEY)
-  let githubToken = commandOptions.token?.trim()
-  let geminiKey = commandOptions.geminiKey?.trim()
+  let githubToken = normalizeInputValue(commandOptions.token)
+  let geminiKey = normalizeInputValue(commandOptions.geminiKey)
 
   if (!githubToken && !geminiKey) {
     const answers = await inquirer.prompt([
@@ -19,11 +47,11 @@ export async function configAction(commandOptions = {}) {
         type: 'password',
         name: 'githubTokenInput',
         message: currentGithubToken
-          ? 'Enter GitHub Personal Access Token (Press Enter to keep current):'
-          : 'Enter GitHub Personal Access Token:',
+          ? 'GitHub Personal Access Token already set. Press Enter to keep the current value:'
+          : 'Enter GitHub Personal Access Token (required):',
         mask: '*',
         validate: (input) => {
-          if (input.trim() || currentGithubToken) {
+          if (normalizeInputValue(input) || currentGithubToken) {
             return true
           }
           return 'GitHub Personal Access Token is required.'
@@ -33,11 +61,11 @@ export async function configAction(commandOptions = {}) {
         type: 'password',
         name: 'geminiKeyInput',
         message: currentGeminiKey
-          ? 'Enter Gemini API Key (Press Enter to keep current):'
-          : 'Enter Gemini API Key (Optional):',
+          ? 'Gemini API Key already set. Press Enter to keep the current value:'
+          : 'Enter Gemini API Key (required):',
         mask: '*',
         validate: (input) => {
-          if (input.trim() || currentGeminiKey) {
+          if (normalizeInputValue(input) || currentGeminiKey) {
             return true
           }
           return 'Gemini API Key is required.'
@@ -45,12 +73,12 @@ export async function configAction(commandOptions = {}) {
       },
     ])
 
-    githubToken = answers.githubTokenInput.trim() || currentGithubToken
-    geminiKey = answers.geminiKeyInput.trim() || currentGeminiKey
+    githubToken = keepCurrentValue(answers.githubTokenInput, currentGithubToken)
+    geminiKey = keepCurrentValue(answers.geminiKeyInput, currentGeminiKey)
   }
   else {
-    githubToken = githubToken || currentGithubToken
-    geminiKey = geminiKey || currentGeminiKey
+    githubToken = keepCurrentValue(githubToken, currentGithubToken)
+    geminiKey = keepCurrentValue(geminiKey, currentGeminiKey)
   }
 
   if (!githubToken) {
@@ -61,7 +89,7 @@ export async function configAction(commandOptions = {}) {
   const messages = []
 
   if (githubToken === currentGithubToken) {
-    messages.push(chalk.yellow('GitHub Personal Access Token is unchanged.'))
+    messages.push(chalk.yellow('GitHub Personal Access Token kept unchanged.'))
   }
   else {
     config.set(GITHUB_TOKEN_KEY, githubToken)
@@ -70,7 +98,7 @@ export async function configAction(commandOptions = {}) {
 
   if (geminiKey) {
     if (geminiKey === currentGeminiKey) {
-      messages.push(chalk.yellow('Gemini API Key is unchanged.'))
+      messages.push(chalk.yellow('Gemini API Key kept unchanged.'))
     }
     else {
       config.set(GEMINI_API_KEY, geminiKey)
@@ -78,11 +106,25 @@ export async function configAction(commandOptions = {}) {
     }
   }
   else if (currentGeminiKey) {
-    messages.push(chalk.yellow('Gemini API Key is unchanged.'))
+    messages.push(chalk.yellow('Gemini API Key kept unchanged.'))
   }
   else {
-    messages.push(chalk.yellow('Gemini API Key is not set.'))
+    messages.push(chalk.yellow('Gemini API Key is not set yet.'))
   }
 
   messages.forEach(message => console.log(message))
+}
+
+export function configGetAction(commandOptions = {}) {
+  const config = getConfig()
+  const githubToken = config.get(GITHUB_TOKEN_KEY)
+  const geminiKey = config.get(GEMINI_API_KEY)
+  const showFullValue = Boolean(commandOptions.show)
+
+  console.log(`GitHub Personal Access Token: ${formatSecret(githubToken, showFullValue)}`)
+  console.log(`Gemini API Key: ${formatSecret(geminiKey, showFullValue)}`)
+
+  if (!showFullValue) {
+    console.log(chalk.gray('Use `gia config get --show` to display full values.'))
+  }
 }

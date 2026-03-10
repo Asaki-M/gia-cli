@@ -9,10 +9,12 @@ export function generateCategoryMDContent(result) {
   const categorizedSectionLines = ['# Categorized Issues']
 
   for (const category of categorizedIssues) {
-    categorizedSectionLines.push(`${capitalize(category.name)}(${category.issues.length})`)
+    if (category.issues.length > 0) {
+      categorizedSectionLines.push(`${capitalize(category.name)}(${category.issues.length})`)
 
-    for (const issue of category.issues) {
-      categorizedSectionLines.push(`- ${issue.number} - ${issue.title}`)
+      for (const issue of category.issues) {
+        categorizedSectionLines.push(`- ${issue.number} - ${issue.title}`)
+      }
     }
 
     categorizedSectionLines.push('')
