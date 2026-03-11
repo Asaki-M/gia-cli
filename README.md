@@ -6,7 +6,7 @@ Features:
 
 Usage:
 - `gia`：分析仓库 Issue 分类与难度评估，并生成 `owner-repo-issue-report.md`
-- `gia config`：配置 GitHub Token 和 Gemini API Key
+- `gia config`：配置 GitHub Token 和 AI Config（`baseUrl`、`model`、`apiKey`）
 - `gia config get`：查看当前已保存的配置（默认脱敏）
 - `gia config get --show`：查看当前已保存的完整配置
 - `gia cache clear`：清除本地 AI 分类缓存

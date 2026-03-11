@@ -1,11 +1,8 @@
 import { createHash } from 'node:crypto'
-import { getConfig } from './config.js'
-import {
-  CATEGORIZED_ISSUES_PROMPT_VERSION,
-  GEMINI_MODEL,
-} from './gemini.js'
+import { getAiConfig, getConfig } from './config.js'
+import { CATEGORIZED_ISSUES_PROMPT_VERSION } from './issue.js'
 
-const ISSUE_CLASSIFICATION_CACHE_KEY = 'gemini.issueClassificationCache'
+const ISSUE_CLASSIFICATION_CACHE_KEY = 'ai.issueClassificationCache'
 
 function createEmptyCategorizedIssues(labels = []) {
   return labels.map(label => ({
@@ -35,7 +32,7 @@ function createIssueClassificationCacheKey({ owner, repo, labels = [], issue = {
       labels: normalizeLabels(labels),
       number: issue.number,
       title: issue.title?.trim() || '',
-      model: GEMINI_MODEL,
+      model: getAiConfig().model,
       promptVersion: CATEGORIZED_ISSUES_PROMPT_VERSION,
     }))
     .digest('hex')

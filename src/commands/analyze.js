@@ -1,7 +1,8 @@
 import fs from 'node:fs'
+import chalk from 'chalk'
 import inquirer from 'inquirer'
-import { categorizedIssuesByGemini } from '../api/gemini.js'
 import { listAllLabelsForRepository, listAllOpenRepositoryIssues } from '../api/github.js'
+import { categorizedIssuesByAI } from '../api/issue.js'
 import {
   getCachedIssueClassifications,
   saveIssueClassificationsToCache,
@@ -11,23 +12,36 @@ import {
   chunkItems,
   mergeCategorizedIssuesResults,
 } from '../utils/analyze.js'
-import { GEMINI_API_KEY, getConfig, GITHUB_TOKEN_KEY } from '../utils/config.js'
+import {
+  getAiConfig,
+  getConfig,
+  GITHUB_TOKEN_KEY,
+  hasCompleteAiConfig,
+} from '../utils/config.js'
 import { generateCategoryMDContent } from '../utils/markdown.js'
 
 export async function analyzeAction() {
   const config = getConfig()
   const token = config.get(GITHUB_TOKEN_KEY)
-  const geminiKey = config.get(GEMINI_API_KEY)
+  const aiConfig = getAiConfig()
 
-  if (!token || !geminiKey) {
+  if (!token || !hasCompleteAiConfig(aiConfig)) {
     const missingKeys = []
 
     if (!token) {
       missingKeys.push('GitHub Personal Access Token')
     }
 
-    if (!geminiKey) {
-      missingKeys.push('Gemini API Key')
+    if (!aiConfig.baseUrl) {
+      missingKeys.push('AI Base URL')
+    }
+
+    if (!aiConfig.model) {
+      missingKeys.push('AI Model')
+    }
+
+    if (!aiConfig.apiKey) {
+      missingKeys.push('AI API Key')
     }
 
     console.log(`Please run \`gia config\` to save the required config: ${missingKeys.join(', ')}`)
@@ -93,7 +107,7 @@ export async function analyzeAction() {
 
     for (const [index, issueBatch] of issueBatches.entries()) {
       console.log(`Classifying issue batch ${index + 1}/${issueBatches.length} with AI...`)
-      const aiResult = await categorizedIssuesByGemini({
+      const aiResult = await categorizedIssuesByAI({
         labels,
         issues: issueBatch,
       })
@@ -107,6 +121,9 @@ export async function analyzeAction() {
           labels,
           result: aiResult,
         })
+      }
+      else {
+        console.log(chalk.yellow(`Failed to classify issue batch ${index + 1}/${issueBatches.length} with AI. Message: ${aiResult.error}`))
       }
     }
 

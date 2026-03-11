@@ -14,14 +14,16 @@ program.action(analyzeAction)
 
 const configCommand = program
   .command('config')
-  .description('Configure GitHub token and Gemini API key.')
+  .description('Configure GitHub token and AI config.')
   .option('-t, --token <token>', 'GitHub Personal Access Token')
-  .option('-g, --gemini-key <geminiKey>', 'Gemini API Key')
+  .option('-b, --ai-base-url <aiBaseUrl>', 'AI Base URL')
+  .option('-m, --ai-model <aiModel>', 'AI model')
+  .option('-k, --ai-api-key <aiApiKey>', 'AI API Key')
   .action(configAction)
 
 configCommand
   .command('get')
-  .description('Show saved GitHub token and Gemini API key.')
+  .description('Show saved GitHub token and AI config.')
   .option('-s, --show', 'Show full values instead of masked output.')
   .action(configGetAction)
 
