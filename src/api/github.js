@@ -58,5 +58,5 @@ export async function listAllLabelsForRepository({ owner, repo, token, query } =
     labels.push(...data)
   }
 
-  return labels.map(item => item.name)
+  return labels
 }

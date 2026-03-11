@@ -37,6 +37,34 @@ export function buildCategorizedIssuesPrompt(labels = [], issues = []) {
   ].join('\n')
 }
 
+export function buildEvaluableLabelsPrompt(labels = []) {
+  const normalizedLabels = labels
+    .map(label => ({
+      name: label?.name?.trim() || '',
+      description: label?.description?.trim() || '',
+    }))
+    .filter(label => label.name)
+
+  return [
+    '你是一个资深的开源项目维护者。我现在会给你一份某开源仓库的所有 Label 列表（包含名称和描述）。',
+    '请你分析这些 Label，并判断带有该 Label 的 Issue 是否需要进行“开发难度评估”。',
+    '',
+    '判定标准：',
+    '1. 【需要评估】（evaluable）：通常是需要编写代码、修改文档或进行测试的具体任务。例如：bug, feature, enhancement, refactor, help wanted, good first issue 等。',
+    '2. 【无需评估/可过滤】（ignored）：通常是沟通交流、状态标记、拒绝处理或非研发任务。例如：question, duplicate, wontfix, invalid, discussion, dependencies, locked 等。',
+    '',
+    '请返回严格的 JSON 格式，结构如下：',
+    '{',
+    '  "evaluable_labels": ["label_name_1", "label_name_2"],',
+    '  "ignored_labels": ["label_name_3", "label_name_4"],',
+    '  "unknown_labels": ["label_name_5"]',
+    '}',
+    '',
+    '只返回 JSON，不要输出 Markdown，不要输出额外解释。',
+    `以下是该仓库的 Label 列表：${JSON.stringify(normalizedLabels)}`,
+  ].join('\n')
+}
+
 export function extractJson(text = '') {
   const trimmedText = text.trim()
 
@@ -71,6 +99,36 @@ export function extractJson(text = '') {
   }
 
   return trimmedText
+}
+
+function normalizeComparableLabelName(name) {
+  return name?.trim().toLowerCase() || ''
+}
+
+function collectResultLabelNames(values = []) {
+  if (!Array.isArray(values)) {
+    return []
+  }
+
+  return values
+    .map(value => value?.toString().trim() || '')
+    .filter(Boolean)
+}
+
+export function normalizeAiEvaluableLabels(labels = [], result = {}) {
+  const selectedLabelNames = new Set([
+    ...collectResultLabelNames(result.evaluable_labels),
+    ...collectResultLabelNames(result.unknown_labels),
+  ].map(normalizeComparableLabelName))
+
+  if (selectedLabelNames.size === 0) {
+    return []
+  }
+
+  return labels.filter((label) => {
+    const labelName = normalizeComparableLabelName(label?.name)
+    return labelName && selectedLabelNames.has(labelName)
+  })
 }
 
 export function normalizeAiCategorizedIssues(labels = [], result = {}, originalIssues = []) {

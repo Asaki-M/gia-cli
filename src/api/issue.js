@@ -1,9 +1,36 @@
 import {
   buildCategorizedIssuesPrompt,
+  buildEvaluableLabelsPrompt,
   extractJson,
   normalizeAiCategorizedIssues,
+  normalizeAiEvaluableLabels,
 } from '../utils/issue.js'
 import { askForAI } from './shared/ai.js'
+
+export async function filterEvaluableLabelsByAI({ labels = [] } = {}) {
+  const normalizedLabels = labels
+    .map(label => ({
+      name: label?.name?.trim() || '',
+      description: label?.description?.trim() || '',
+    }))
+    .filter(label => label.name)
+
+  if (normalizedLabels.length === 0) {
+    return []
+  }
+
+  const evaluableLabelsPrompt = buildEvaluableLabelsPrompt(normalizedLabels)
+
+  try {
+    const response = await askForAI(evaluableLabelsPrompt)
+    const parsedResponse = JSON.parse(extractJson(response.text || '{}'))
+
+    return normalizeAiEvaluableLabels(normalizedLabels, parsedResponse)
+  }
+  catch {
+    return normalizedLabels
+  }
+}
 
 export async function categorizedIssuesByAI({ labels = [], issues = [] } = {}) {
   const categorizedIssuesPrompt = buildCategorizedIssuesPrompt(labels, issues)
