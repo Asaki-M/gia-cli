@@ -1,6 +1,6 @@
 Features:
 - Issue 自动分类
-- Issue 难度评估 - TODO
+- Issue 难度评估
 - 推荐可以贡献的 Issue - TODO
 - 项目健康度分析 - TODO
 
