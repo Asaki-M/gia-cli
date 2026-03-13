@@ -29,11 +29,11 @@ configCommand
 
 const cacheCommand = program
   .command('cache')
-  .description('Manage cached AI issue classifications.')
+  .description('Manage cached AI analysis results.')
 
 cacheCommand
   .command('clear')
-  .description('Clear cached AI issue classifications.')
+  .description('Clear cached AI analysis results.')
   .action(cacheClearAction)
 
 program.parse(process.argv)

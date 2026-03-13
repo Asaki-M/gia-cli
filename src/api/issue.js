@@ -1,10 +1,14 @@
 import {
-  buildCategorizedIssuesPrompt,
-  buildEvaluableLabelsPrompt,
-  extractJson,
   normalizeAiCategorizedIssues,
+  normalizeAiDifficultyResult,
   normalizeAiEvaluableLabels,
 } from '../utils/issue.js'
+import {
+  buildCategorizedIssuesPrompt,
+  buildEvaluableLabelsPrompt,
+  buildUniversalDifficultyPrompt,
+  extractJson,
+} from '../utils/prompt.js'
 import { askForAI } from './shared/ai.js'
 
 export async function filterEvaluableLabelsByAI({ labels = [] } = {}) {
@@ -29,6 +33,33 @@ export async function filterEvaluableLabelsByAI({ labels = [] } = {}) {
   }
   catch {
     return normalizedLabels
+  }
+}
+
+export async function difficultyIssuesByAI({
+  issue = {},
+  categoryName = 'uncategorized',
+  repoContext,
+} = {}) {
+  const difficultyPrompt = buildUniversalDifficultyPrompt(
+    issue,
+    categoryName,
+    repoContext,
+  )
+
+  try {
+    const response = await askForAI(difficultyPrompt)
+    const parsedResponse = JSON.parse(extractJson(response.text || '{}'))
+
+    return normalizeAiDifficultyResult(parsedResponse)
+  }
+  catch (error) {
+    return {
+      difficulty_level: 'Medium',
+      estimated_time: 'Unknown',
+      reasoning: 'Failed to evaluate issue difficulty with AI.',
+      error: `AI difficulty evaluation failed: ${error.message}`,
+    }
   }
 }
 

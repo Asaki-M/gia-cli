@@ -1,14 +1,19 @@
 import fs from 'node:fs'
 import inquirer from 'inquirer'
-import { listAllLabelsForRepository, listAllOpenRepositoryIssues } from '../../api/github.js'
+import { getRepositoryBasicInfo, listAllLabelsForRepository, listAllOpenRepositoryIssues } from '../../api/github.js'
 import {
   getAiConfig,
   getConfig,
   GITHUB_TOKEN_KEY,
   hasCompleteAiConfig,
 } from '../../utils/config.js'
-import { generateCategoryMDContent } from '../../utils/markdown.js'
+import { normalizeIssues } from '../../utils/index.js'
+import {
+  generateCategoryMDContent,
+  generateDifficultyMDContent,
+} from '../../utils/markdown.js'
 import { categorizeRepositoryIssues } from './issue-classification.js'
+import { estimateRepositoryIssuesDifficulty } from './issue-difficulty.js'
 
 export async function analyzeAction() {
   const config = getConfig()
@@ -74,9 +79,14 @@ export async function analyzeAction() {
       repo: finalParams.repo,
       token,
     })
+    const basicRepoInfo = await getRepositoryBasicInfo({
+      owner: finalParams.owner,
+      repo: finalParams.repo,
+      token,
+    })
+
     if (issues.length === 0) {
       console.log('No open issues found.')
-      return
     }
 
     const finalResult = await categorizeRepositoryIssues({
@@ -85,9 +95,28 @@ export async function analyzeAction() {
       labels,
       issues,
     })
-
+    const categorizedIssues = normalizeIssues({
+      origins: issues,
+      issues: finalResult.categorizedIssues,
+    })
+    const uncategorizedIssues = normalizeIssues({
+      origins: issues,
+      issues: finalResult.uncategorizedIssues,
+    })
+    const difficultyResults = await estimateRepositoryIssuesDifficulty({
+      owner: finalParams.owner,
+      repo: finalParams.repo,
+      labels,
+      categorizedIssues,
+      uncategorizedIssues,
+      basicRepoInfo,
+    })
+    const reportContent = [
+      generateCategoryMDContent(finalResult),
+      generateDifficultyMDContent(difficultyResults),
+    ].join('\n\n')
     const outputPath = `./${finalParams.owner}-${finalParams.repo}-issue-report.md`
-    fs.writeFileSync(outputPath, generateCategoryMDContent(finalResult))
+    fs.writeFileSync(outputPath, reportContent)
     console.log(`Issue report generated: ${outputPath}`)
   }
   catch (error) {

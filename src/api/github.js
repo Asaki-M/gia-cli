@@ -60,3 +60,18 @@ export async function listAllLabelsForRepository({ owner, repo, token, query } =
 
   return labels
 }
+
+export async function getRepositoryBasicInfo({ owner, repo, token } = {}) {
+  assertRepositoryParams(owner, repo)
+
+  const octokit = createOctokit(token)
+  const { data } = await octokit.request(
+    'GET /repos/{owner}/{repo}',
+    withGithubApiVersion({
+      owner,
+      repo,
+    }),
+  )
+
+  return data
+}

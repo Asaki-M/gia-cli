@@ -1,13 +1,25 @@
 import chalk from 'chalk'
-import { clearIssueClassificationCache } from '../utils/ai-cache.js'
+import {
+  clearEvaluableLabelsCache,
+  clearIssueClassificationCache,
+  clearIssueDifficultyCache,
+} from '../utils/ai-cache.js'
 
 export function cacheClearAction() {
-  const clearedCount = clearIssueClassificationCache()
+  const clearedClassificationCount = clearIssueClassificationCache()
+  const clearedEvaluableLabelsCount = clearEvaluableLabelsCache()
+  const clearedDifficultyCount = clearIssueDifficultyCache()
+  const totalClearedCount = clearedClassificationCount + clearedEvaluableLabelsCount + clearedDifficultyCount
 
-  if (clearedCount === 0) {
-    console.log(chalk.yellow('No AI classification cache found.'))
+  if (totalClearedCount === 0) {
+    console.log(chalk.yellow('No AI cache found.'))
     return
   }
 
-  console.log(chalk.green(`Cleared ${clearedCount} AI classification cache entr${clearedCount === 1 ? 'y' : 'ies'}.`))
+  console.log(chalk.green([
+    `Cleared ${totalClearedCount} AI cache entr${totalClearedCount === 1 ? 'y' : 'ies'}.`,
+    `Issue classifications: ${clearedClassificationCount}.`,
+    `Evaluable labels: ${clearedEvaluableLabelsCount}.`,
+    `Issue difficulties: ${clearedDifficultyCount}.`,
+  ].join(' ')))
 }
