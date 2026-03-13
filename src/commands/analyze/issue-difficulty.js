@@ -104,7 +104,7 @@ async function estimateIssueDifficulties({
     items: issueItems,
   })
   const cachedCount = cachedResults.length
-  const issueBatches = chunkItems(missedItems, 20)
+  const issueBatches = chunkItems(missedItems, 10)
   const aiResults = []
 
   if (cachedCount > 0) {
