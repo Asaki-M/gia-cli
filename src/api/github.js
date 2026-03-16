@@ -39,6 +39,59 @@ export async function listAllOpenRepositoryIssues({
   return issues
 }
 
+export async function listOpenRepositoryIssuesWithLimit({
+  owner,
+  repo,
+  token,
+  limit,
+  offset = 0,
+  query,
+} = {}) {
+  assertRepositoryParams(owner, repo)
+
+  const normalizedLimit = Number.parseInt(limit, 10)
+  if (!Number.isInteger(normalizedLimit) || normalizedLimit <= 0) {
+    throw new Error('limit must be a positive integer')
+  }
+  const normalizedOffset = Number.parseInt(offset, 10)
+  if (!Number.isInteger(normalizedOffset) || normalizedOffset < 0) {
+    throw new Error('offset must be a non-negative integer')
+  }
+
+  const octokit = createOctokit(token)
+  const perPage = Math.min(query?.perPage || query?.per_page || 100, 100)
+  const normalizedQuery = normalizeIssueQuery({
+    ...query,
+    state: 'open',
+    perPage,
+  })
+  const issues = []
+  let skippedCount = 0
+
+  for await (const { data } of octokit.paginate.iterator(
+    'GET /repos/{owner}/{repo}/issues',
+    withGithubApiVersion({
+      owner,
+      repo,
+      ...normalizedQuery,
+    }),
+  )) {
+    for (const issue of filterOutPullRequests(data)) {
+      if (skippedCount < normalizedOffset) {
+        skippedCount += 1
+        continue
+      }
+
+      issues.push(issue)
+      if (issues.length >= normalizedLimit) {
+        return issues
+      }
+    }
+  }
+
+  return issues
+}
+
 export async function listAllLabelsForRepository({ owner, repo, token, query } = {}) {
   assertRepositoryParams(owner, repo)
 
