@@ -10,6 +10,10 @@ import {
   saveIssueDifficultiesToCache,
 } from '../../utils/ai-cache.js'
 import { chunkItems } from '../../utils/analyze.js'
+import {
+  createProgressBar,
+  createSpinner,
+} from '../../utils/loading.js'
 import { buildRepoContextForAI } from '../../utils/prompt.js'
 
 function normalizeCategoryName(name) {
@@ -68,7 +72,9 @@ async function getEvaluableLabels({ owner, repo, labels = [] } = {}) {
     return cachedEvaluableLabels
   }
 
+  const spinner = createSpinner('Filtering evaluable labels with AI...')
   const evaluableLabels = await filterEvaluableLabelsByAI({ labels })
+  spinner.succeed(`Evaluable labels ready (${evaluableLabels.length}).`)
   saveEvaluableLabelsToCache({
     owner,
     repo,
@@ -106,21 +112,40 @@ async function estimateIssueDifficulties({
   const cachedCount = cachedResults.length
   const issueBatches = chunkItems(missedItems, 10)
   const aiResults = []
+  const failureMessages = []
 
   if (cachedCount > 0) {
     console.log(`Loaded ${cachedCount} issue difficulties from cache.`)
   }
 
+  const progressBar = createProgressBar({
+    total: missedItems.length,
+    format: 'Issue difficulty |{bar}| {value}/{total} issues',
+  })
+  const spinner = missedItems.length > 0
+    ? createSpinner(`Evaluating issue difficulties with AI (0/${missedItems.length})...`)
+    : null
+  let finishedCount = 0
+
   for (const [index, issueBatch] of issueBatches.entries()) {
-    console.log(`Evaluating issue difficulty batch ${index + 1}/${issueBatches.length} with AI...`)
+    if (spinner) {
+      spinner.text = `Evaluating issue difficulty batch ${index + 1}/${issueBatches.length} with AI...`
+    }
+
     const batchResults = []
 
     for (const issueItem of issueBatch) {
+      if (spinner) {
+        spinner.text = `Evaluating issue #${issueItem.issue.number} (${finishedCount + 1}/${missedItems.length})...`
+      }
+
       const difficulty = await difficultyIssuesByAI({
         issue: issueItem.issue,
         categoryName: issueItem.categoryName,
         repoContext: repoContext || `${owner}/${repo}`,
       })
+      finishedCount += 1
+      progressBar?.update(finishedCount)
       const result = {
         categoryName: issueItem.categoryName,
         issue: issueItem.issue,
@@ -139,7 +164,7 @@ async function estimateIssueDifficulties({
         batchResults.push(result)
       }
       else {
-        console.log(chalk.yellow(`Failed to evaluate issue #${issueItem.issue.number} difficulty with AI. Message: ${difficulty.error}`))
+        failureMessages.push(`Failed to evaluate issue #${issueItem.issue.number} difficulty with AI. Message: ${difficulty.error}`)
       }
     }
 
@@ -148,6 +173,16 @@ async function estimateIssueDifficulties({
       repo,
       items: batchResults,
     })
+  }
+
+  progressBar?.stop()
+
+  if (spinner) {
+    spinner.succeed(`Issue difficulty evaluation completed (${missedItems.length} issues).`)
+  }
+
+  for (const message of failureMessages) {
+    console.log(chalk.yellow(message))
   }
 
   return [
