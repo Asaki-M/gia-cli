@@ -1,4 +1,5 @@
 const MULTIPLE_EMPTY_LINES_REGEX = /\n{3,}/g
+const INLINE_NEWLINES_REGEX = /\s*\n\s*/g
 
 function capitalize(str) {
   if (!str)
@@ -11,16 +12,31 @@ function normalizeMarkdownText(value, fallback = '') {
   return text.replace(MULTIPLE_EMPTY_LINES_REGEX, '\n\n')
 }
 
+function escapeMarkdownInlineHTML(value = '') {
+  return value
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+}
+
+function normalizeInlineMarkdownText(value, fallback = '') {
+  return escapeMarkdownInlineHTML(
+    normalizeMarkdownText(value, fallback).replace(INLINE_NEWLINES_REGEX, ' '),
+  )
+}
+
 export function generateCategoryMDContent(result) {
   const { categorizedIssues, uncategorizedIssues } = result
   const categorizedSectionLines = ['# Categorized Issues']
 
   for (const category of categorizedIssues) {
     if (category.issues.length > 0) {
-      categorizedSectionLines.push(`${capitalize(category.name)}(${category.issues.length})`)
+      const categoryName = normalizeInlineMarkdownText(capitalize(category.name), 'Uncategorized')
+      categorizedSectionLines.push(`${categoryName}(${category.issues.length})`)
 
       for (const issue of category.issues) {
-        categorizedSectionLines.push(`- ${issue.number} - ${issue.title}`)
+        const issueTitle = normalizeInlineMarkdownText(issue.title, 'Untitled issue')
+        categorizedSectionLines.push(`- ${issue.number} - ${issueTitle}`)
       }
     }
 
@@ -30,7 +46,8 @@ export function generateCategoryMDContent(result) {
   const uncategorizedSectionLines = ['# Uncategorized Issues']
 
   for (const issue of uncategorizedIssues) {
-    uncategorizedSectionLines.push(`- ${issue.number} - ${issue.title}`)
+    const issueTitle = normalizeInlineMarkdownText(issue.title, 'Untitled issue')
+    uncategorizedSectionLines.push(`- ${issue.number} - ${issueTitle}`)
   }
 
   return [
@@ -49,8 +66,8 @@ export function generateDifficultyMDContent(results = []) {
 
   for (const item of results) {
     const issueNumber = item?.issue?.number
-    const issueTitle = normalizeMarkdownText(item?.issue?.title, 'Untitled issue')
-    const categoryName = normalizeMarkdownText(item?.categoryName, 'uncategorized')
+    const issueTitle = normalizeInlineMarkdownText(item?.issue?.title, 'Untitled issue')
+    const categoryName = normalizeInlineMarkdownText(item?.categoryName, 'uncategorized')
     const difficultyLevel = normalizeMarkdownText(item?.difficulty?.difficulty_level, 'Unknown')
     const estimatedTime = normalizeMarkdownText(item?.difficulty?.estimated_time, 'Unknown')
     const reasoning = normalizeMarkdownText(item?.difficulty?.reasoning, 'No reasoning provided.')
@@ -58,10 +75,10 @@ export function generateDifficultyMDContent(results = []) {
     const headingIssueNumber = typeof issueNumber === 'number' ? `#${issueNumber}` : '#Unknown'
 
     sectionLines.push(`## ${headingIssueNumber} - ${issueTitle}`)
-    sectionLines.push(`Category: ${categoryName}`)
-    sectionLines.push(`Difficulty: ${difficultyLevel}`)
-    sectionLines.push(`Estimated Time: ${estimatedTime}`)
-    sectionLines.push(`Reasoning: ${reasoning}`)
+    sectionLines.push(`Category: ${categoryName}\n`)
+    sectionLines.push(`Difficulty: ${difficultyLevel}\n`)
+    sectionLines.push(`Estimated Time: ${estimatedTime}\n`)
+    sectionLines.push(`Reasoning: ${reasoning}\n`)
 
     if (errorMessage) {
       sectionLines.push(`Status: Fallback result due to AI error (${errorMessage})`)
