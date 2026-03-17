@@ -1,4 +1,5 @@
 import fs from 'node:fs'
+import chalk from 'chalk'
 import inquirer from 'inquirer'
 import { generateHealthReport } from '../api/health-report.js'
 import { analyzeRepositoryHealthByGraphQL } from '../api/health.js'
@@ -104,7 +105,7 @@ export async function healthAction(commandOptions = {}) {
   const token = normalizeInputValue(config.get(GITHUB_TOKEN_KEY))
 
   if (!token) {
-    console.log('Please run `gia config` to save GitHub Personal Access Token.')
+    console.log(chalk.yellow('Please run `gia config` to save GitHub Personal Access Token.'))
     return
   }
 
@@ -115,7 +116,9 @@ export async function healthAction(commandOptions = {}) {
 
   const finalParams = await promptRepositoryParams(inputOwner, inputRepo)
 
-  console.log(`Running health analysis for ${finalParams.owner}/${finalParams.repo} (last ${lookbackDays} days)...`)
+  console.log(
+    chalk.cyan(`Running health analysis for ${finalParams.owner}/${finalParams.repo} (last ${lookbackDays} days)...`),
+  )
 
   let metricsSpinner
   let aiSpinner
@@ -156,7 +159,7 @@ export async function healthAction(commandOptions = {}) {
     fs.writeFileSync(outputPath, reportContent)
     writeSpinner.succeed(`Health report written to ${outputPath}`)
 
-    console.log(`Health report generated: ${outputPath}`)
+    console.log(chalk.green(`Health report generated: ${outputPath}`))
   }
   catch (error) {
     if (metricsSpinner?.isSpinning) {
@@ -171,6 +174,6 @@ export async function healthAction(commandOptions = {}) {
       writeSpinner.fail('Failed to write health report file.')
     }
 
-    console.error('Failed to analyze repository health:', error.message)
+    console.error(chalk.red(`Failed to analyze repository health: ${error.message}`))
   }
 }

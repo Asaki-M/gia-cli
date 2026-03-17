@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+import chalk from 'chalk'
 import { Command } from 'commander'
 import {
   analyzeAction,
@@ -9,7 +10,40 @@ import {
   healthAction,
 } from '../src/commands/index.js'
 
+let hasHandledInterrupt = false
+
+function handleInterrupt(message, exitCode = 130) {
+  if (hasHandledInterrupt) {
+    return
+  }
+
+  hasHandledInterrupt = true
+  process.stderr.write(`\n${chalk.yellow(message)}\n`)
+  process.exit(exitCode)
+}
+
+function registerInterruptHandlers() {
+  process.on('SIGINT', () => {
+    handleInterrupt('Command interrupted by user (SIGINT).', 130)
+  })
+
+  process.on('SIGTERM', () => {
+    handleInterrupt('Command interrupted by system (SIGTERM).', 143)
+  })
+}
+
+function isPromptInterruptError(error) {
+  const errorName = error?.name || ''
+  const errorMessage = error?.message || ''
+
+  return errorName === 'ExitPromptError'
+    || errorName === 'AbortPromptError'
+    || errorMessage.includes('User force closed')
+}
+
 const program = new Command()
+
+registerInterruptHandlers()
 
 program
   .name('gia')
@@ -51,4 +85,12 @@ program
   .option('-c, --comment-threshold <commentThreshold>', 'Minimum comments to count as an active commenter (default: 3)')
   .action(healthAction)
 
-program.parse(process.argv)
+program.parseAsync(process.argv).catch((error) => {
+  if (isPromptInterruptError(error)) {
+    handleInterrupt('Command interrupted by user.', 130)
+    return
+  }
+
+  process.stderr.write(`\n${chalk.red(`Unexpected error: ${error.message}`)}\n`)
+  process.exit(1)
+})
