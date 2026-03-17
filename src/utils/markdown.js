@@ -25,6 +25,14 @@ function normalizeInlineMarkdownText(value, fallback = '') {
   )
 }
 
+function formatMetricValue(value, fallback = 'N/A') {
+  if (value === null || value === undefined || Number.isNaN(value)) {
+    return fallback
+  }
+
+  return String(value)
+}
+
 export function generateCategoryMDContent(result) {
   const { categorizedIssues, uncategorizedIssues } = result
   const categorizedSectionLines = ['# Categorized Issues']
@@ -88,4 +96,57 @@ export function generateDifficultyMDContent(results = []) {
   }
 
   return sectionLines.join('\n').trimEnd()
+}
+
+export function generateHealthMDContent(report = {}) {
+  const issueResponsiveness = report.issueResponsiveness || {}
+  const resolutionRate = report.resolutionRate || {}
+  const communityEngagement = report.communityEngagement || {}
+  const goodFirstIssue = communityEngagement.goodFirstIssue || {}
+  const pullRequestMergeEfficiency = report.pullRequestMergeEfficiency || {}
+  const maintenanceVitality = report.maintenanceVitality || {}
+  const timeframe = report.timeframe || {}
+
+  return [
+    '# Repository Health Report',
+    '',
+    `Repository: ${normalizeInlineMarkdownText(`${report.owner || ''}/${report.repo || ''}`, 'unknown/unknown')}`,
+    `Time Window: Last ${formatMetricValue(timeframe.lookbackDays)} days (${formatMetricValue(timeframe.sinceAt)} -> ${formatMetricValue(timeframe.untilAt)})`,
+    '',
+    '## Issue Responsiveness',
+    `- TTFR (Average): ${formatMetricValue(issueResponsiveness.averageFirstResponseHours)}h`,
+    `- TTFR (Median): ${formatMetricValue(issueResponsiveness.medianFirstResponseHours)}h`,
+    `- Issues With Maintainer Response: ${formatMetricValue(issueResponsiveness.issuesWithMaintainerResponseCount)}`,
+    `- Issues Without Maintainer Response: ${formatMetricValue(issueResponsiveness.issuesWithoutMaintainerResponseCount)}`,
+    '',
+    '## Issue Resolution Rate',
+    `- Closed Issues (Window): ${formatMetricValue(resolutionRate.closedIssuesCount)}`,
+    `- New Issues (Window): ${formatMetricValue(resolutionRate.newIssuesCount)}`,
+    `- Resolution Rate: ${formatMetricValue(resolutionRate.resolutionRatePercent)}%`,
+    '',
+    '## Community Engagement',
+    `- Active Contributors: ${formatMetricValue(communityEngagement.activeContributorsCount)}`,
+    `- Merged PR Authors: ${formatMetricValue(communityEngagement.mergedPullRequestAuthorsCount)}`,
+    `- Active Commenters (>=${formatMetricValue(communityEngagement.activeCommentThreshold)} comments): ${formatMetricValue(communityEngagement.activeCommentersCount)}`,
+    `- Good First Issues Created: ${formatMetricValue(goodFirstIssue.totalCount)}`,
+    `- Good First Issues Open: ${formatMetricValue(goodFirstIssue.openCount)}`,
+    `- Good First Issues Closed: ${formatMetricValue(goodFirstIssue.closedCount)}`,
+    `- Good First Issues Quick Closed: ${formatMetricValue(goodFirstIssue.quickClosedCount)}`,
+    `- Good First Issues Stale Open: ${formatMetricValue(goodFirstIssue.staleOpenCount)}`,
+    `- Good First Issue Survival (Average): ${formatMetricValue(goodFirstIssue.averageSurvivalDays)}d`,
+    `- Good First Issue Survival (Median): ${formatMetricValue(goodFirstIssue.medianSurvivalDays)}d`,
+    '',
+    '## PR Merge Efficiency',
+    `- Merged PRs (Window): ${formatMetricValue(pullRequestMergeEfficiency.mergedPullRequestsCount)}`,
+    `- Rejected PRs (Window): ${formatMetricValue(pullRequestMergeEfficiency.rejectedPullRequestsCount)}`,
+    `- Merge Lead Time (Average): ${formatMetricValue(pullRequestMergeEfficiency.averageMergeHours)}h`,
+    `- Merge Lead Time (Median): ${formatMetricValue(pullRequestMergeEfficiency.medianMergeHours)}h`,
+    `- Reject/Merge Ratio: ${formatMetricValue(pullRequestMergeEfficiency.rejectToMergeRatio)}`,
+    '',
+    '## Maintenance Vitality',
+    `- Default Branch: ${formatMetricValue(maintenanceVitality.defaultBranchName)}`,
+    `- Last Commit At: ${formatMetricValue(maintenanceVitality.lastCommitAt)}`,
+    `- Days Since Last Commit: ${formatMetricValue(maintenanceVitality.daysSinceLastCommit)}d`,
+    `- Zombie Risk (>90 days): ${maintenanceVitality.isLikelyZombie === null || maintenanceVitality.isLikelyZombie === undefined ? 'N/A' : maintenanceVitality.isLikelyZombie ? 'Yes' : 'No'}`,
+  ].join('\n')
 }

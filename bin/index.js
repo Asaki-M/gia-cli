@@ -1,7 +1,13 @@
 #!/usr/bin/env node
 
 import { Command } from 'commander'
-import { analyzeAction, cacheClearAction, configAction, configGetAction } from '../src/commands/index.js'
+import {
+  analyzeAction,
+  cacheClearAction,
+  configAction,
+  configGetAction,
+  healthAction,
+} from '../src/commands/index.js'
 
 const program = new Command()
 
@@ -35,5 +41,14 @@ cacheCommand
   .command('clear')
   .description('Clear cached AI analysis results.')
   .action(cacheClearAction)
+
+program
+  .command('health')
+  .description('Analyze repository health metrics using GitHub GraphQL data.')
+  .option('-o, --owner <owner>', 'Repository owner')
+  .option('-r, --repo <repo>', 'Repository name')
+  .option('-d, --days <days>', 'Lookback window in days (default: 90)')
+  .option('-c, --comment-threshold <commentThreshold>', 'Minimum comments to count as an active commenter (default: 3)')
+  .action(healthAction)
 
 program.parse(process.argv)

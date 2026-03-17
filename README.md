@@ -9,10 +9,13 @@
 - Automatic issue categorization
 - Issue difficulty assessment
 - Recommend contribution candidates (TODO)
-- Repository health analysis (TODO)
+- Repository health analysis (`gia health`)
 
 ### Usage
 - `gia`: Analyze open issues and generate `owner-repo-issue-report.md`. During prompts, select `First 30`, `Custom issue limit`, or `All open issues`. For non-all modes, you can set a page to analyze batches (e.g. `limit=30`, `page=2` -> issues `31-60`).
+- `gia health`: Analyze repository health using GitHub GraphQL data and generate `owner-repo-health-report.md`.
+- `gia health --owner <owner> --repo <repo> --days 90`: Run health analysis without interactive prompts.
+- `gia health --comment-threshold 3`: Set minimum comments needed for counting an active commenter.
 - `gia config`: Configure GitHub token and AI config (`baseUrl`, `model`, `apiKey`).
 - `gia config get`: Show saved config with masked values.
 - `gia config get --show`: Show full saved config values.
@@ -35,10 +38,13 @@
 - Issue 自动分类
 - Issue 难度评估
 - 推荐可贡献的 Issue（TODO）
-- 项目健康度分析（TODO）
+- 项目健康度分析（`gia health`）
 
 ### 用法
 - `gia`：分析仓库 open issues 并生成 `owner-repo-issue-report.md`，在交互里可选 `前 30 条`、`自定义数量` 或 `全部 open issue`。非全部模式可输入页码进行分段分析（例如 `limit=30`、`page=2` 对应 `31-60`）。
+- `gia health`：基于 GitHub GraphQL 数据分析项目健康度，并生成 `owner-repo-health-report.md`。
+- `gia health --owner <owner> --repo <repo> --days 90`：无需交互，直接执行健康度分析。
+- `gia health --comment-threshold 3`：设置“积极评论者”的最小评论数阈值。
 - `gia config`：配置 GitHub Token 和 AI 配置（`baseUrl`、`model`、`apiKey`）。
 - `gia config get`：查看当前已保存配置（默认脱敏）。
 - `gia config get --show`：查看当前已保存配置的完整值。
