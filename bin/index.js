@@ -8,7 +8,9 @@ import {
   configAction,
   configGetAction,
   healthAction,
+  langAction,
 } from '../src/commands/index.js'
+import { t } from '../src/i18n/index.js'
 
 let hasHandledInterrupt = false
 
@@ -24,11 +26,11 @@ function handleInterrupt(message, exitCode = 130) {
 
 function registerInterruptHandlers() {
   process.on('SIGINT', () => {
-    handleInterrupt('Command interrupted by user (SIGINT).', 130)
+    handleInterrupt(t('cli.interrupt.sigint'), 130)
   })
 
   process.on('SIGTERM', () => {
-    handleInterrupt('Command interrupted by system (SIGTERM).', 143)
+    handleInterrupt(t('cli.interrupt.sigterm'), 143)
   })
 }
 
@@ -48,49 +50,55 @@ registerInterruptHandlers()
 program
   .name('gia')
   .version('1.0.0')
-  .description('A CLI tool for analyzing repository issues.')
+  .description(t('cli.description'))
 
 program.action(analyzeAction)
 
 const configCommand = program
   .command('config')
-  .description('Configure GitHub token and AI config.')
-  .option('-t, --token <token>', 'GitHub Personal Access Token')
-  .option('-b, --ai-base-url <aiBaseUrl>', 'AI Base URL')
-  .option('-m, --ai-model <aiModel>', 'AI model')
-  .option('-k, --ai-api-key <aiApiKey>', 'AI API Key')
+  .description(t('command.config.description'))
+  .option('-t, --token <token>', t('command.config.option.token'))
+  .option('-b, --ai-base-url <aiBaseUrl>', t('command.config.option.aiBaseUrl'))
+  .option('-m, --ai-model <aiModel>', t('command.config.option.aiModel'))
+  .option('-k, --ai-api-key <aiApiKey>', t('command.config.option.aiApiKey'))
   .action(configAction)
 
 configCommand
   .command('get')
-  .description('Show saved GitHub token and AI config.')
-  .option('-s, --show', 'Show full values instead of masked output.')
+  .description(t('command.config.get.description'))
+  .option('-s, --show', t('command.config.get.option.show'))
   .action(configGetAction)
 
 const cacheCommand = program
   .command('cache')
-  .description('Manage cached AI analysis results.')
+  .description(t('command.cache.description'))
 
 cacheCommand
   .command('clear')
-  .description('Clear cached AI analysis results.')
+  .description(t('command.cache.clear.description'))
   .action(cacheClearAction)
 
 program
   .command('health')
-  .description('Analyze repository health metrics using GitHub GraphQL data.')
-  .option('-o, --owner <owner>', 'Repository owner')
-  .option('-r, --repo <repo>', 'Repository name')
-  .option('-d, --days <days>', 'Lookback window in days (default: 90)')
-  .option('-c, --comment-threshold <commentThreshold>', 'Minimum comments to count as an active commenter (default: 3)')
+  .description(t('command.health.description'))
+  .option('-o, --owner <owner>', t('command.health.option.owner'))
+  .option('-r, --repo <repo>', t('command.health.option.repo'))
+  .option('-d, --days <days>', t('command.health.option.days'))
+  .option('-c, --comment-threshold <commentThreshold>', t('command.health.option.commentThreshold'))
   .action(healthAction)
+
+program
+  .command('lang')
+  .description(t('command.lang.description'))
+  .option('-s, --set <language>', t('command.lang.option.set'))
+  .action(langAction)
 
 program.parseAsync(process.argv).catch((error) => {
   if (isPromptInterruptError(error)) {
-    handleInterrupt('Command interrupted by user.', 130)
+    handleInterrupt(t('cli.interrupt.user'), 130)
     return
   }
 
-  process.stderr.write(`\n${chalk.red(`Unexpected error: ${error.message}`)}\n`)
+  process.stderr.write(`\n${chalk.red(t('cli.error.unexpected', { message: error.message }))}\n`)
   process.exit(1)
 })

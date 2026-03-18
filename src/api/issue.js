@@ -1,3 +1,4 @@
+import { t } from '../i18n/index.js'
 import {
   normalizeAiCategorizedIssues,
   normalizeAiDifficultyResult,
@@ -56,9 +57,9 @@ export async function difficultyIssuesByAI({
   catch (error) {
     return {
       difficulty_level: 'Medium',
-      estimated_time: 'Unknown',
-      reasoning: 'Failed to evaluate issue difficulty with AI.',
-      error: `AI difficulty evaluation failed: ${error.message}`,
+      estimated_time: t('common.unknown'),
+      reasoning: t('issueAi.fallback.reasoning'),
+      error: t('issueAi.error.difficultyFailed', { message: error.message }),
     }
   }
 }
@@ -82,7 +83,7 @@ export async function categorizedIssuesByAI({ labels = [], issues = [] } = {}) {
         number: issue.number,
         title: issue.title,
       })),
-      error: `AI 分类失败：${error.message}`,
+      error: t('issueAi.error.classificationFailed', { message: error.message }),
     }
   }
 }

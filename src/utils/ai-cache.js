@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto'
+import { t } from '../i18n/index.js'
 import { getAiConfig, getConfig } from './config.js'
 import {
   CATEGORIZED_ISSUES_PROMPT_VERSION,
@@ -321,8 +322,8 @@ export function getCachedIssueDifficulties({ owner, repo, items = [] } = {}) {
       issue: toIssueSummary(item.issue),
       difficulty: {
         difficulty_level: cachedEntry.difficulty_level,
-        estimated_time: cachedEntry.estimated_time || 'Unknown',
-        reasoning: cachedEntry.reasoning || 'No reasoning provided.',
+        estimated_time: cachedEntry.estimated_time || t('common.unknown'),
+        reasoning: cachedEntry.reasoning || t('issueAi.default.reasoning'),
       },
     })
   }

@@ -1,5 +1,6 @@
 import chalk from 'chalk'
 import { categorizedIssuesByAI } from '../../api/issue.js'
+import { t } from '../../i18n/index.js'
 import {
   getCachedIssueClassifications,
   saveIssueClassificationsToCache,
@@ -29,20 +30,20 @@ export async function categorizeRepositoryIssues({ owner, repo, labels = [], iss
   const failureMessages = []
 
   if (cachedCount > 0) {
-    console.log(`Loaded ${cachedCount} issue classifications from cache.`)
+    console.log(t('classification.log.loadedCache', { count: cachedCount }))
   }
 
   const progressBar = createProgressBar({
     total: issueBatches.length,
-    format: 'Issue classification |{bar}| {value}/{total} batches',
+    format: t('classification.progress.format'),
   })
   const spinner = issueBatches.length > 0
-    ? createSpinner(`Classifying issue batch 1/${issueBatches.length} with AI...`)
+    ? createSpinner(t('classification.spinner.batch', { current: 1, total: issueBatches.length }))
     : null
 
   for (const [index, issueBatch] of issueBatches.entries()) {
     if (spinner) {
-      spinner.text = `Classifying issue batch ${index + 1}/${issueBatches.length} with AI...`
+      spinner.text = t('classification.spinner.batch', { current: index + 1, total: issueBatches.length })
     }
 
     const aiResult = await categorizedIssuesByAI({
@@ -61,7 +62,11 @@ export async function categorizeRepositoryIssues({ owner, repo, labels = [], iss
       })
     }
     else {
-      failureMessages.push(`Failed to classify issue batch ${index + 1}/${issueBatches.length} with AI. Message: ${aiResult.error}`)
+      failureMessages.push(t('classification.error.batchFailed', {
+        current: index + 1,
+        total: issueBatches.length,
+        message: aiResult.error,
+      }))
     }
 
     progressBar?.increment()
@@ -70,7 +75,7 @@ export async function categorizeRepositoryIssues({ owner, repo, labels = [], iss
   progressBar?.stop()
 
   if (spinner) {
-    spinner.succeed(`Issue classification completed (${issueBatches.length} batches).`)
+    spinner.succeed(t('classification.spinner.completed', { count: issueBatches.length }))
   }
 
   for (const message of failureMessages) {

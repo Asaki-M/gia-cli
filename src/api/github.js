@@ -1,3 +1,4 @@
+import { t } from '../i18n/index.js'
 import {
   assertRepositoryParams,
   filterOutPullRequests,
@@ -51,11 +52,11 @@ export async function listOpenRepositoryIssuesWithLimit({
 
   const normalizedLimit = Number.parseInt(limit, 10)
   if (!Number.isInteger(normalizedLimit) || normalizedLimit <= 0) {
-    throw new Error('limit must be a positive integer')
+    throw new Error(t('error.limitPositiveInteger'))
   }
   const normalizedOffset = Number.parseInt(offset, 10)
   if (!Number.isInteger(normalizedOffset) || normalizedOffset < 0) {
-    throw new Error('offset must be a non-negative integer')
+    throw new Error(t('error.offsetNonNegativeInteger'))
   }
 
   const octokit = createOctokit(token)

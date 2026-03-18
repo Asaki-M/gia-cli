@@ -6,6 +6,7 @@ import {
   listAllOpenRepositoryIssues,
   listOpenRepositoryIssuesWithLimit,
 } from '../../api/github.js'
+import { t } from '../../i18n/index.js'
 import {
   getAiConfig,
   getConfig,
@@ -31,22 +32,22 @@ export async function analyzeAction() {
     const missingKeys = []
 
     if (!token) {
-      missingKeys.push('GitHub Personal Access Token')
+      missingKeys.push(t('analyze.config.githubToken'))
     }
 
     if (!aiConfig.baseUrl) {
-      missingKeys.push('AI Base URL')
+      missingKeys.push(t('analyze.config.aiBaseUrl'))
     }
 
     if (!aiConfig.model) {
-      missingKeys.push('AI Model')
+      missingKeys.push(t('analyze.config.aiModel'))
     }
 
     if (!aiConfig.apiKey) {
-      missingKeys.push('AI API Key')
+      missingKeys.push(t('analyze.config.aiApiKey'))
     }
 
-    console.log(`Please run \`gia config\` to save the required config: ${missingKeys.join(', ')}`)
+    console.log(t('analyze.error.missingConfig', { keys: missingKeys.join(', ') }))
     return
   }
 
@@ -54,8 +55,8 @@ export async function analyzeAction() {
     {
       type: 'input',
       name: 'owner',
-      message: 'Enter the owner of the repository:',
-      validate: input => !!input || 'Please enter the owner of the repository.',
+      message: t('analyze.prompt.owner'),
+      validate: input => !!input || t('analyze.prompt.owner.required'),
     },
   ])
 
@@ -63,8 +64,8 @@ export async function analyzeAction() {
     {
       type: 'input',
       name: 'repo',
-      message: 'Enter the repository name:',
-      validate: input => !!input || 'Please enter the repository name.',
+      message: t('analyze.prompt.repo'),
+      validate: input => !!input || t('analyze.prompt.repo.required'),
     },
   ])
 
@@ -77,19 +78,19 @@ export async function analyzeAction() {
     {
       type: 'rawlist',
       name: 'mode',
-      message: 'Select issue analysis range:',
+      message: t('analyze.prompt.range'),
       default: 'default',
       choices: [
         {
-          name: `First ${DEFAULT_ISSUE_LIMIT} issues (default)`,
+          name: t('analyze.prompt.range.default', { limit: DEFAULT_ISSUE_LIMIT }),
           value: 'default',
         },
         {
-          name: 'Custom issue limit',
+          name: t('analyze.prompt.range.custom'),
           value: 'custom',
         },
         {
-          name: 'All open issues',
+          name: t('analyze.prompt.range.all'),
           value: 'all',
         },
       ],
@@ -97,27 +98,27 @@ export async function analyzeAction() {
     {
       type: 'input',
       name: 'limit',
-      message: 'Enter issue limit:',
+      message: t('analyze.prompt.limit'),
       when: answers => answers.mode === 'custom',
       validate: (input) => {
         const parsedValue = Number.parseInt(input, 10)
         return Number.isInteger(parsedValue) && parsedValue > 0
           ? true
-          : 'Please enter a positive integer.'
+          : t('common.positiveInteger')
       },
       filter: input => Number.parseInt(input, 10),
     },
     {
       type: 'input',
       name: 'page',
-      message: 'Enter issue page (1-based):',
+      message: t('analyze.prompt.page'),
       default: 1,
       when: answers => answers.mode !== 'all',
       validate: (input) => {
         const parsedValue = Number.parseInt(input, 10)
         return Number.isInteger(parsedValue) && parsedValue > 0
           ? true
-          : 'Please enter a positive integer.'
+          : t('common.positiveInteger')
       },
       filter: input => Number.parseInt(input, 10),
     },
@@ -127,7 +128,7 @@ export async function analyzeAction() {
   const issuePage = issueRange.mode === 'all' ? 1 : issueRange.page
   const issueOffset = (issuePage - 1) * issueLimit
 
-  console.log('Fetching issues...\n')
+  console.log(t('analyze.log.fetchingIssues'))
 
   try {
     const listOpenRepositoryIssues = analyzeAllIssues
@@ -157,21 +158,29 @@ export async function analyzeAction() {
       if (!analyzeAllIssues && issueOffset > 0) {
         const rangeStart = issueOffset + 1
         const rangeEnd = issueOffset + issueLimit
-        console.log(`No open issues found in selected range: ${rangeStart}-${rangeEnd}.`)
+        console.log(t('analyze.log.noIssuesRange', {
+          start: rangeStart,
+          end: rangeEnd,
+        }))
       }
       else {
-        console.log('No open issues found.')
+        console.log(t('analyze.log.noIssues'))
       }
       return
     }
 
     if (analyzeAllIssues) {
-      console.log(`Analyzing all ${issuesToAnalyze.length} open issues.`)
+      console.log(t('analyze.log.analyzingAll', { count: issuesToAnalyze.length }))
     }
     else {
       const rangeStart = issueOffset + 1
       const rangeEnd = issueOffset + issuesToAnalyze.length
-      console.log(`Analyzing open issues ${rangeStart}-${rangeEnd} (limit: ${issueLimit}, page: ${issuePage}).`)
+      console.log(t('analyze.log.analyzingRange', {
+        start: rangeStart,
+        end: rangeEnd,
+        limit: issueLimit,
+        page: issuePage,
+      }))
     }
 
     const finalResult = await categorizeRepositoryIssues({
@@ -202,9 +211,9 @@ export async function analyzeAction() {
     ].join('\n\n')
     const outputPath = `./${finalParams.owner}-${finalParams.repo}-issue-report.md`
     fs.writeFileSync(outputPath, reportContent)
-    console.log(`Issue report generated: ${outputPath}`)
+    console.log(t('analyze.log.reportGenerated', { path: outputPath }))
   }
   catch (error) {
-    console.error('Failed to analyze issues:', error.message)
+    console.error(t('analyze.error.failed', { message: error.message }))
   }
 }

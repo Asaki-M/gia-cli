@@ -1,8 +1,10 @@
+import { t } from '../i18n/index.js'
+
 const GITHUB_API_VERSION = '2022-11-28'
 
 export function assertRepositoryParams(owner, repo) {
   if (!owner || !repo) {
-    throw new Error('owner and repo are required')
+    throw new Error(t('error.ownerRepoRequired'))
   }
 }
 

@@ -1,5 +1,6 @@
 import chalk from 'chalk'
 import inquirer from 'inquirer'
+import { t } from '../i18n/index.js'
 import {
   AI_CONFIG_KEY,
   getConfig,
@@ -56,7 +57,7 @@ function isAiConfigEqual(leftAiConfig, rightAiConfig) {
 
 function maskSecret(value) {
   if (!value) {
-    return chalk.gray('Not set')
+    return chalk.gray(t('common.notSet'))
   }
 
   if (value.length <= 8) {
@@ -68,14 +69,14 @@ function maskSecret(value) {
 
 function formatSecret(value, showFullValue = false) {
   if (!value) {
-    return chalk.gray('Not set')
+    return chalk.gray(t('common.notSet'))
   }
 
   return showFullValue ? value : maskSecret(value)
 }
 
 function formatValue(value) {
-  return value || chalk.gray('Not set')
+  return value || chalk.gray(t('common.notSet'))
 }
 
 function createTokenQuestion(currentGithubToken) {
@@ -83,15 +84,15 @@ function createTokenQuestion(currentGithubToken) {
     type: 'password',
     name: 'githubTokenInput',
     message: currentGithubToken
-      ? 'GitHub Personal Access Token already set. Press Enter to keep the current value:'
-      : 'Enter GitHub Personal Access Token (required):',
+      ? t('config.prompt.token.keep')
+      : t('config.prompt.token.enter'),
     mask: '*',
     validate: (input) => {
       if (normalizeInputValue(input) || currentGithubToken) {
         return true
       }
 
-      return 'GitHub Personal Access Token is required.'
+      return t('config.validate.token.required')
     },
   }
 }
@@ -102,43 +103,43 @@ function createAiConfigQuestions(currentAiConfig) {
       type: 'input',
       name: 'aiBaseUrlInput',
       message: currentAiConfig.baseUrl
-        ? 'AI Base URL already set. Press Enter to keep the current value:'
-        : 'Enter AI Base URL (required):',
+        ? t('config.prompt.aiBaseUrl.keep')
+        : t('config.prompt.aiBaseUrl.enter'),
       validate: (input) => {
         if (normalizeInputValue(input) || currentAiConfig.baseUrl) {
           return true
         }
 
-        return 'AI Base URL is required.'
+        return t('config.validate.aiBaseUrl.required')
       },
     },
     {
       type: 'input',
       name: 'aiModelInput',
       message: currentAiConfig.model
-        ? 'AI model already set. Press Enter to keep the current value:'
-        : 'Enter AI model (required):',
+        ? t('config.prompt.aiModel.keep')
+        : t('config.prompt.aiModel.enter'),
       validate: (input) => {
         if (normalizeInputValue(input) || currentAiConfig.model) {
           return true
         }
 
-        return 'AI model is required.'
+        return t('config.validate.aiModel.required')
       },
     },
     {
       type: 'password',
       name: 'aiApiKeyInput',
       message: currentAiConfig.apiKey
-        ? 'AI API Key already set. Press Enter to keep the current value:'
-        : 'Enter AI API Key (required):',
+        ? t('config.prompt.aiApiKey.keep')
+        : t('config.prompt.aiApiKey.enter'),
       mask: '*',
       validate: (input) => {
         if (normalizeInputValue(input) || currentAiConfig.apiKey) {
           return true
         }
 
-        return 'AI API Key is required.'
+        return t('config.validate.aiApiKey.required')
       },
     },
   ]
@@ -216,32 +217,32 @@ export async function configAction(commandOptions = {}) {
   }
 
   if (!githubToken) {
-    console.log(chalk.red('GitHub Personal Access Token was not updated.'))
+    console.log(chalk.red(t('config.error.tokenNotUpdated')))
     return
   }
 
   if (!hasCompleteAiConfig(aiConfig)) {
-    console.log(chalk.red('AI config was not updated.'))
+    console.log(chalk.red(t('config.error.aiConfigNotUpdated')))
     return
   }
 
   const messages = []
 
   if (githubToken === currentGithubToken) {
-    messages.push(chalk.yellow('GitHub Personal Access Token kept unchanged.'))
+    messages.push(chalk.yellow(t('config.info.tokenUnchanged')))
   }
   else {
     config.set(GITHUB_TOKEN_KEY, githubToken)
-    messages.push(chalk.green('GitHub Personal Access Token saved successfully.'))
+    messages.push(chalk.green(t('config.info.tokenSaved')))
   }
 
   if (!hasStoredAiConfig || !isAiConfigEqual(aiConfig, storedAiConfig)) {
     config.set(AI_CONFIG_KEY, aiConfig)
 
-    messages.push(chalk.green('AI config saved successfully.'))
+    messages.push(chalk.green(t('config.info.aiConfigSaved')))
   }
   else {
-    messages.push(chalk.yellow('AI config kept unchanged.'))
+    messages.push(chalk.yellow(t('config.info.aiConfigUnchanged')))
   }
 
   messages.forEach(message => console.log(message))
@@ -253,12 +254,12 @@ export function configGetAction(commandOptions = {}) {
   const aiConfig = getCurrentAiConfig(config)
   const showFullValue = Boolean(commandOptions.show)
 
-  console.log(`GitHub Personal Access Token: ${formatSecret(githubToken, showFullValue)}`)
-  console.log(`AI Base URL: ${formatValue(aiConfig.baseUrl)}`)
-  console.log(`AI Model: ${formatValue(aiConfig.model)}`)
-  console.log(`AI API Key: ${formatSecret(aiConfig.apiKey, showFullValue)}`)
+  console.log(t('config.get.githubToken', { value: formatSecret(githubToken, showFullValue) }))
+  console.log(t('config.get.aiBaseUrl', { value: formatValue(aiConfig.baseUrl) }))
+  console.log(t('config.get.aiModel', { value: formatValue(aiConfig.model) }))
+  console.log(t('config.get.aiApiKey', { value: formatSecret(aiConfig.apiKey, showFullValue) }))
 
   if (!showFullValue) {
-    console.log(chalk.gray('Use `gia config get --show` to display full secret values.'))
+    console.log(chalk.gray(t('config.get.showHint')))
   }
 }

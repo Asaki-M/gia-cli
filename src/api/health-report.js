@@ -1,3 +1,4 @@
+import { t } from '../i18n/index.js'
 import { extractJson } from '../utils/prompt.js'
 import { askForAI } from './shared/ai.js'
 
@@ -109,12 +110,12 @@ function normalizeHealthReportResult(result = {}) {
 
   return {
     health_grade: VALID_HEALTH_GRADES.has(healthGrade) ? healthGrade : 'C',
-    summary: normalizeString(result.summary, '暂无可用诊断结果。'),
+    summary: normalizeString(result.summary, t('healthAi.default.summary')),
     strengths: normalizeStringArray(result.strengths, 2),
     risks: normalizeStringArray(result.risks, 2),
     contribution_advice: normalizeString(
       result.contribution_advice,
-      '建议先阅读仓库贡献指南并从小范围修复开始，逐步建立与维护者的协作信任。',
+      t('healthAi.default.advice'),
     ),
   }
 }
@@ -131,12 +132,12 @@ export async function generateHealthReport({ healthData = {} } = {}) {
   catch (error) {
     return {
       health_grade: 'C',
-      summary: 'AI diagnosis unavailable, fallback result returned.',
+      summary: t('healthAi.fallback.summary'),
       strengths: [],
       risks: [
-        `AI diagnosis failed: ${error.message}`,
+        t('healthAi.error.diagnosisFailed', { message: error.message }),
       ],
-      contribution_advice: 'Use the raw health metrics first and verify repository activity manually before investing major effort.',
+      contribution_advice: t('healthAi.fallback.advice'),
     }
   }
 }

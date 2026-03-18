@@ -19,10 +19,14 @@
 - `gia config`: Configure GitHub token and AI config (`baseUrl`, `model`, `apiKey`).
 - `gia config get`: Show saved config with masked values.
 - `gia config get --show`: Show full saved config values.
+- `gia lang`: Select CLI display language interactively (`English` or `Chinese`).
+- `gia lang --set <en|zh>`: Set CLI display language directly.
 - `gia cache clear`: Clear local AI cache (issue classification + evaluable labels + difficulty assessment).
 
 ### Notes
 - Existing labels are used first, then AI classifies the remaining uncategorized issues.
+- Default CLI language is English (`en`).
+- Unsupported language input falls back to English with a warning.
 - Issue classification cache key: `repo + labels + issue number + issue title`.
 - Label evaluability cache key: `repo + label(name/description)`.
 - Difficulty cache key: `repo + category + issue content`.
@@ -48,10 +52,14 @@
 - `gia config`：配置 GitHub Token 和 AI 配置（`baseUrl`、`model`、`apiKey`）。
 - `gia config get`：查看当前已保存配置（默认脱敏）。
 - `gia config get --show`：查看当前已保存配置的完整值。
+- `gia lang`：交互选择 CLI 显示语言（`English` 或 `中文`）。
+- `gia lang --set <en|zh>`：直接设置 CLI 显示语言。
 - `gia cache clear`：清除本地 AI 缓存（Issue 分类 + 可评估 Labels + 难度评估）。
 
 ### 说明
 - Issue 自动分类会优先使用已有 label，再由 AI 补充未分类 issue。
+- CLI 默认语言为英文（`en`）。
+- 传入不支持的语言值时，会警告并回退到英文。
 - AI 分类缓存键：`仓库 + labels + issue number + issue title`。
 - Labels 可评估性缓存键：`仓库 + labels(name/description)`。
 - 难度评估缓存键：`仓库 + 分类 + issue 内容`。

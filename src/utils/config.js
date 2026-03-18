@@ -2,6 +2,7 @@ import Conf from 'conf'
 
 export const GITHUB_TOKEN_KEY = 'github.token'
 export const AI_CONFIG_KEY = 'aiConfig'
+export const APP_LANGUAGE_KEY = 'app.language'
 
 let configInstance
 

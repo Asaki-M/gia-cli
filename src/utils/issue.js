@@ -1,3 +1,5 @@
+import { t } from '../i18n/index.js'
+
 function normalizeComparableLabelName(name) {
   return name?.trim().toLowerCase() || ''
 }
@@ -27,8 +29,8 @@ export function normalizeDifficultyLevel(value) {
 }
 
 export function normalizeAiDifficultyResult(result = {}) {
-  const estimatedTime = result?.estimated_time?.toString().trim() || 'Unknown'
-  const reasoning = result?.reasoning?.toString().trim() || 'No reasoning provided.'
+  const estimatedTime = result?.estimated_time?.toString().trim() || t('common.unknown')
+  const reasoning = result?.reasoning?.toString().trim() || t('issueAi.default.reasoning')
 
   return {
     difficulty_level: normalizeDifficultyLevel(result?.difficulty_level),

@@ -3,6 +3,7 @@ import {
   difficultyIssuesByAI,
   filterEvaluableLabelsByAI,
 } from '../../api/issue.js'
+import { t } from '../../i18n/index.js'
 import {
   getCachedEvaluableLabels,
   getCachedIssueDifficulties,
@@ -68,13 +69,15 @@ async function getEvaluableLabels({ owner, repo, labels = [] } = {}) {
   const cachedEvaluableLabels = getCachedEvaluableLabels({ owner, repo, labels })
 
   if (cachedEvaluableLabels !== null) {
-    console.log(`Loaded ${cachedEvaluableLabels.length} evaluable labels from cache.`)
+    console.log(t('difficulty.log.loadedEvaluableLabelsCache', {
+      count: cachedEvaluableLabels.length,
+    }))
     return cachedEvaluableLabels
   }
 
-  const spinner = createSpinner('Filtering evaluable labels with AI...')
+  const spinner = createSpinner(t('difficulty.spinner.filterLabels'))
   const evaluableLabels = await filterEvaluableLabelsByAI({ labels })
-  spinner.succeed(`Evaluable labels ready (${evaluableLabels.length}).`)
+  spinner.succeed(t('difficulty.spinner.labelsReady', { count: evaluableLabels.length }))
   saveEvaluableLabelsToCache({
     owner,
     repo,
@@ -115,28 +118,35 @@ async function estimateIssueDifficulties({
   const failureMessages = []
 
   if (cachedCount > 0) {
-    console.log(`Loaded ${cachedCount} issue difficulties from cache.`)
+    console.log(t('difficulty.log.loadedCache', { count: cachedCount }))
   }
 
   const progressBar = createProgressBar({
     total: missedItems.length,
-    format: 'Issue difficulty |{bar}| {value}/{total} issues',
+    format: t('difficulty.progress.format'),
   })
   const spinner = missedItems.length > 0
-    ? createSpinner(`Evaluating issue difficulties with AI (0/${missedItems.length})...`)
+    ? createSpinner(t('difficulty.spinner.start', { total: missedItems.length }))
     : null
   let finishedCount = 0
 
   for (const [index, issueBatch] of issueBatches.entries()) {
     if (spinner) {
-      spinner.text = `Evaluating issue difficulty batch ${index + 1}/${issueBatches.length} with AI...`
+      spinner.text = t('difficulty.spinner.batch', {
+        current: index + 1,
+        total: issueBatches.length,
+      })
     }
 
     const batchResults = []
 
     for (const issueItem of issueBatch) {
       if (spinner) {
-        spinner.text = `Evaluating issue #${issueItem.issue.number} (${finishedCount + 1}/${missedItems.length})...`
+        spinner.text = t('difficulty.spinner.issue', {
+          issueNumber: issueItem.issue.number,
+          current: finishedCount + 1,
+          total: missedItems.length,
+        })
       }
 
       const difficulty = await difficultyIssuesByAI({
@@ -164,7 +174,10 @@ async function estimateIssueDifficulties({
         batchResults.push(result)
       }
       else {
-        failureMessages.push(`Failed to evaluate issue #${issueItem.issue.number} difficulty with AI. Message: ${difficulty.error}`)
+        failureMessages.push(t('difficulty.error.issueFailed', {
+          issueNumber: issueItem.issue.number,
+          message: difficulty.error,
+        }))
       }
     }
 
@@ -178,7 +191,7 @@ async function estimateIssueDifficulties({
   progressBar?.stop()
 
   if (spinner) {
-    spinner.succeed(`Issue difficulty evaluation completed (${missedItems.length} issues).`)
+    spinner.succeed(t('difficulty.spinner.completed', { count: missedItems.length }))
   }
 
   for (const message of failureMessages) {

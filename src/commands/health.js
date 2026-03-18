@@ -3,6 +3,7 @@ import chalk from 'chalk'
 import inquirer from 'inquirer'
 import { generateHealthReport } from '../api/health-report.js'
 import { analyzeRepositoryHealthByGraphQL } from '../api/health.js'
+import { t } from '../i18n/index.js'
 import {
   getConfig,
   GITHUB_TOKEN_KEY,
@@ -23,7 +24,7 @@ function parsePositiveInteger(value, fallbackValue) {
 
 function normalizeAiReportArray(values = []) {
   if (!Array.isArray(values) || values.length === 0) {
-    return ['N/A']
+    return [t('common.na')]
   }
 
   return values
@@ -39,25 +40,25 @@ function buildHealthReportMarkdown({ owner, repo, aiReport = {}, metrics = {} } 
   const risks = normalizeAiReportArray(aiReport.risks)
 
   return [
-    '# Repository Health AI Report',
+    t('health.aiReport.title'),
     '',
-    `Repository: ${owner}/${repo}`,
+    t('health.aiReport.repository', { owner, repo }),
     '',
-    `Health Grade: ${aiReport.health_grade || 'N/A'}`,
+    t('health.aiReport.grade', { value: aiReport.health_grade || t('common.na') }),
     '',
-    '## Summary',
-    aiReport.summary || 'N/A',
+    t('health.aiReport.summary'),
+    aiReport.summary || t('common.na'),
     '',
-    '## Strengths',
+    t('health.aiReport.strengths'),
     ...strengths.map(item => `- ${item}`),
     '',
-    '## Risks',
+    t('health.aiReport.risks'),
     ...risks.map(item => `- ${item}`),
     '',
-    '## Contribution Advice',
-    aiReport.contribution_advice || 'N/A',
+    t('health.aiReport.contributionAdvice'),
+    aiReport.contribution_advice || t('common.na'),
     '',
-    '## Metadata',
+    t('health.aiReport.metadata'),
     '```json',
     JSON.stringify(metrics, null, 2),
     '```',
@@ -71,8 +72,8 @@ async function promptRepositoryParams(owner, repo) {
     questions.push({
       type: 'input',
       name: 'owner',
-      message: 'Enter the owner of the repository:',
-      validate: input => !!normalizeInputValue(input) || 'Please enter the owner of the repository.',
+      message: t('health.prompt.owner'),
+      validate: input => !!normalizeInputValue(input) || t('health.prompt.owner.required'),
     })
   }
 
@@ -80,8 +81,8 @@ async function promptRepositoryParams(owner, repo) {
     questions.push({
       type: 'input',
       name: 'repo',
-      message: 'Enter the repository name:',
-      validate: input => !!normalizeInputValue(input) || 'Please enter the repository name.',
+      message: t('health.prompt.repo'),
+      validate: input => !!normalizeInputValue(input) || t('health.prompt.repo.required'),
     })
   }
 
@@ -105,7 +106,7 @@ export async function healthAction(commandOptions = {}) {
   const token = normalizeInputValue(config.get(GITHUB_TOKEN_KEY))
 
   if (!token) {
-    console.log(chalk.yellow('Please run `gia config` to save GitHub Personal Access Token.'))
+    console.log(chalk.yellow(t('health.error.missingToken')))
     return
   }
 
@@ -117,7 +118,11 @@ export async function healthAction(commandOptions = {}) {
   const finalParams = await promptRepositoryParams(inputOwner, inputRepo)
 
   console.log(
-    chalk.cyan(`Running health analysis for ${finalParams.owner}/${finalParams.repo} (last ${lookbackDays} days)...`),
+    chalk.cyan(t('health.log.running', {
+      owner: finalParams.owner,
+      repo: finalParams.repo,
+      days: lookbackDays,
+    })),
   )
 
   let metricsSpinner
@@ -125,7 +130,7 @@ export async function healthAction(commandOptions = {}) {
   let writeSpinner
 
   try {
-    metricsSpinner = createSpinner('Collecting repository health metrics...')
+    metricsSpinner = createSpinner(t('health.spinner.collectMetrics'))
     const healthMetrics = await analyzeRepositoryHealthByGraphQL({
       owner: finalParams.owner,
       repo: finalParams.repo,
@@ -133,18 +138,18 @@ export async function healthAction(commandOptions = {}) {
       lookbackDays,
       activeCommentThreshold,
     })
-    metricsSpinner.succeed('Repository health metrics collected.')
+    metricsSpinner.succeed(t('health.spinner.metricsCollected'))
 
-    aiSpinner = createSpinner('Generating AI health diagnosis...')
+    aiSpinner = createSpinner(t('health.spinner.generateDiagnosis'))
     const aiReport = await generateHealthReport({
       healthData: healthMetrics,
     })
 
     if (isAiFallbackReport(aiReport)) {
-      aiSpinner.warn('AI diagnosis fallback used (report still generated).')
+      aiSpinner.warn(t('health.spinner.diagnosisFallback'))
     }
     else {
-      aiSpinner.succeed('AI health diagnosis generated.')
+      aiSpinner.succeed(t('health.spinner.diagnosisGenerated'))
     }
 
     const reportContent = buildHealthReportMarkdown({
@@ -155,25 +160,25 @@ export async function healthAction(commandOptions = {}) {
     })
     const outputPath = `./${finalParams.owner}-${finalParams.repo}-health-report.md`
 
-    writeSpinner = createSpinner('Writing health report file...')
+    writeSpinner = createSpinner(t('health.spinner.writeReport'))
     fs.writeFileSync(outputPath, reportContent)
-    writeSpinner.succeed(`Health report written to ${outputPath}`)
+    writeSpinner.succeed(t('health.spinner.reportWritten', { path: outputPath }))
 
-    console.log(chalk.green(`Health report generated: ${outputPath}`))
+    console.log(chalk.green(t('health.log.reportGenerated', { path: outputPath })))
   }
   catch (error) {
     if (metricsSpinner?.isSpinning) {
-      metricsSpinner.fail('Failed to collect repository health metrics.')
+      metricsSpinner.fail(t('health.spinner.collectMetricsFailed'))
     }
 
     if (aiSpinner?.isSpinning) {
-      aiSpinner.fail('Failed to generate AI health diagnosis.')
+      aiSpinner.fail(t('health.spinner.diagnosisFailed'))
     }
 
     if (writeSpinner?.isSpinning) {
-      writeSpinner.fail('Failed to write health report file.')
+      writeSpinner.fail(t('health.spinner.writeFailed'))
     }
 
-    console.error(chalk.red(`Failed to analyze repository health: ${error.message}`))
+    console.error(chalk.red(t('health.error.failed', { message: error.message })))
   }
 }

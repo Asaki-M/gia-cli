@@ -1,4 +1,5 @@
 import chalk from 'chalk'
+import { t } from '../i18n/index.js'
 import {
   clearEvaluableLabelsCache,
   clearIssueClassificationCache,
@@ -12,14 +13,18 @@ export function cacheClearAction() {
   const totalClearedCount = clearedClassificationCount + clearedEvaluableLabelsCount + clearedDifficultyCount
 
   if (totalClearedCount === 0) {
-    console.log(chalk.yellow('No AI cache found.'))
+    console.log(chalk.yellow(t('cache.log.noCache')))
     return
   }
 
+  const entryWord = totalClearedCount === 1
+    ? t('cache.log.entrySingular')
+    : t('cache.log.entryPlural')
+
   console.log(chalk.green([
-    `Cleared ${totalClearedCount} AI cache entr${totalClearedCount === 1 ? 'y' : 'ies'}.`,
-    `Issue classifications: ${clearedClassificationCount}.`,
-    `Evaluable labels: ${clearedEvaluableLabelsCount}.`,
-    `Issue difficulties: ${clearedDifficultyCount}.`,
+    t('cache.log.summary', { count: totalClearedCount, entryWord }),
+    t('cache.log.issueClassifications', { count: clearedClassificationCount }),
+    t('cache.log.evaluableLabels', { count: clearedEvaluableLabelsCount }),
+    t('cache.log.issueDifficulties', { count: clearedDifficultyCount }),
   ].join(' ')))
 }
